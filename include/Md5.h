@@ -206,6 +206,15 @@ public:
         uint32_to_hex(c0_, it);
         uint32_to_hex(d0_, it);
     }
+
+    // Mã hóa string thành md5
+    static std::string ToMd5(const std::string& plain_text) {
+        std::string data_hex;
+        md5 hash;
+        hash.update(plain_text.begin(), plain_text.end());
+        hash.hex_digest(data_hex); // save hex encrypt to data_hex
+        return data_hex;
+    }
 };
 
 const std::array<std::uint32_t, 64> md5::k_array_ = {
