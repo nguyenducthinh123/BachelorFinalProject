@@ -6,9 +6,9 @@
 System _system;
 Log _log;
 
-Broker broker("Mit Nam", "09082805");
+Broker broker;
 
-const std::string exchange_key_topic = "d3101";
+String exchange_key_topic = "d3101";
 String handle_topic = "esp32/" + broker.GetId();
 
 bool isReceived = false;
@@ -41,7 +41,7 @@ void setup() {
     broker.subscribe(exchange_key_topic.c_str());
     broker.SetAction(ReceivedCallback);
     pinMode(2, OUTPUT);
-    Serial.println(ToMD5("D3101").c_str());
+    Serial.println(ToMD5(exchange_key_topic).c_str());
 }
 
 void loop() {

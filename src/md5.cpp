@@ -3,6 +3,11 @@
 #include <sstream>
 #include <iomanip>
 
+String ToMD5(String& input) {
+    std::string Input = std::string(input.c_str());
+    return String(ToMD5(Input).c_str());
+}
+
 std::string ToMD5(const std::string& input) {
     unsigned char digest[16]; // MD5 produces a 16-byte hash
 
