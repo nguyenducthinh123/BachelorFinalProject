@@ -6,9 +6,11 @@
 System _system;
 Log _log;
 
-Broker broker;
+Broker broker("Mit Nam", "09082805");
 
 const std::string exchange_key_topic = "d3101";
+String handle_topic = "esp32/" + broker.GetId();
+
 bool isReceived = false;
 
 void CallBack(const char*, byte*, unsigned int);
@@ -25,7 +27,7 @@ public:
             JsonDocument doc;
             doc["_id"] = broker.GetId();
             
-            broker.Send(md5::ToMd5(exchange_key_topic).c_str(), doc);
+            broker.Send(exchange_key_topic.c_str(), doc);
         }
     }
 } startClock;
@@ -36,7 +38,8 @@ void setup() {
     broker.Begin();
     broker.setCallback(CallBack);
 
-    broker.Listen(md5::ToMd5(exchange_key_topic).c_str(), ReceivedCallback);
+    broker.Listen(exchange_key_topic.c_str(), ReceivedCallback);
+    pinMode(2, OUTPUT);
 }
 
 void loop() {
@@ -45,6 +48,7 @@ void loop() {
 }
 
 void CallBack(const char* topic, byte* payload, unsigned int length) {
+    _log << topic << endl;
     JsonDocument doc;
     deserializeJson(doc, payload, length);
     broker.Call(doc);
@@ -52,18 +56,18 @@ void CallBack(const char* topic, byte* payload, unsigned int length) {
 
 void ReceivedCallback(JsonDocument doc) {
 
-    String res = doc["response"].as<String>();
+    String res = doc["Response"].as<String>();
     if (res == "received") {
         isReceived = true;
-        String handle_topic = "esp32/" + broker.GetId();
-        //broker.Listen(handle_topic.c_str(), RequestCallback);
-        broker.unsubscribe("c7e65e2086e66190ea95701621c34d3c");
-        broker.subscribe(handle_topic.c_str());
-        broker.SetAction(RequestCallback);
+        broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
+
+        // broker.unsubscribe(md5::ToMd5(exchange_key_topic).c_str());
+        // broker.subscribe(handle_topic.c_str());
+        // broker.SetAction(RequestCallback);
     }
 }
 
 void RequestCallback(JsonDocument doc) {
-    String res = doc["response"].as<String>();
-    Serial.println(res);
+    if (doc["power"][0].as<String>() == "on") digitalWrite(2, HIGH);
+    else digitalWrite(2, LOW);
 }
