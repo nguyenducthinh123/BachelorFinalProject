@@ -38,7 +38,8 @@ void setup() {
     broker.Begin();
     broker.setCallback(CallBack);
 
-    broker.Listen(exchange_key_topic.c_str(), ReceivedCallback);
+    broker.subscribe(exchange_key_topic.c_str());
+    broker.SetAction(ReceivedCallback);
     pinMode(2, OUTPUT);
 }
 
@@ -48,7 +49,6 @@ void loop() {
 }
 
 void CallBack(const char* topic, byte* payload, unsigned int length) {
-    _log << topic << endl;
     JsonDocument doc;
     deserializeJson(doc, payload, length);
     broker.Call(doc);
@@ -59,15 +59,14 @@ void ReceivedCallback(JsonDocument doc) {
     String res = doc["Response"].as<String>();
     if (res == "received") {
         isReceived = true;
-        broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
+        // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
 
-        // broker.unsubscribe(md5::ToMd5(exchange_key_topic).c_str());
-        // broker.subscribe(handle_topic.c_str());
-        // broker.SetAction(RequestCallback);
+        broker.unsubscribe(exchange_key_topic.c_str());
+        broker.subscribe(handle_topic.c_str());
+        broker.SetAction(RequestCallback);
     }
 }
 
 void RequestCallback(JsonDocument doc) {
-    if (doc["power"][0].as<String>() == "on") digitalWrite(2, HIGH);
-    else digitalWrite(2, LOW);
+    digitalWrite(2, HIGH);
 }

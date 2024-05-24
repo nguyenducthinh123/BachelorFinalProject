@@ -11,7 +11,7 @@ class Broker : public PubSubClient, public WiFiClient {
     const char* password;
     
     WiFiClient espClient;
-    const char* last_topic;
+    // const char* last_topic;
     Action action;    
 
 public:
@@ -57,18 +57,18 @@ public:
         publish(topic, buffer);
     }
 
-    void Listen(const char* topic, Action received_callback) { 
+    // void Listen(const char* topic, Action received_callback) { 
 
-        if (last_topic) {
-            unsubscribe(last_topic);
-        }
-        last_topic = topic;
-        if (topic) {
-            subscribe(topic);
-        };
+    //     if (last_topic) {
+    //         unsubscribe(last_topic);
+    //     }
+    //     last_topic = topic;
+    //     if (topic) {
+    //         subscribe(topic);
+    //     };
 
-        SetAction(received_callback);
-    }
+    //     SetAction(received_callback);
+    // }
 
     void Call(JsonDocument doc) {
         if (action) {
