@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Broker.h>
 #include "../include/System/System.h"
-#include "Md5.h"
+#include "md5.h"
 
 System _system;
 Log _log;
@@ -41,6 +41,7 @@ void setup() {
     broker.subscribe(exchange_key_topic.c_str());
     broker.SetAction(ReceivedCallback);
     pinMode(2, OUTPUT);
+    Serial.println(ToMD5("D3101").c_str());
 }
 
 void loop() {
