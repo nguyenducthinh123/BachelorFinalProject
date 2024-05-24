@@ -51,10 +51,22 @@ public:
         return *this;
     }
 
+    void Send(String topic, JsonDocument doc) {
+        Send(topic.c_str(), doc);
+    }
+
     void Send(const char* topic, JsonDocument doc) {
         char buffer[256];
         serializeJson(doc, buffer);
         publish(topic, buffer);
+    }
+
+    void Listen(String topic) {
+        subscribe(topic.c_str());
+    }
+
+    void StopListen(String topic) {
+        unsubscribe(topic.c_str());
     }
 
     // void Listen(const char* topic, Action received_callback) { 
@@ -77,8 +89,7 @@ public:
     }
 
     String GetId() {
-        String _id = WiFi.macAddress();
-        return _id;
+       return WiFi.macAddress();
     }
 
 };

@@ -27,7 +27,7 @@ public:
             JsonDocument doc;
             doc["_id"] = broker.GetId();
             
-            broker.Send(exchange_key_topic.c_str(), doc);
+            broker.Send(ToMD5(exchange_key_topic), doc);
         }
     }
 } startClock;
@@ -38,10 +38,9 @@ void setup() {
     broker.Begin();
     broker.setCallback(CallBack);
 
-    broker.subscribe(exchange_key_topic.c_str());
+    broker.Listen(ToMD5(exchange_key_topic));
     broker.SetAction(ReceivedCallback);
     pinMode(2, OUTPUT);
-    Serial.println(ToMD5(exchange_key_topic).c_str());
 }
 
 void loop() {
@@ -62,8 +61,8 @@ void ReceivedCallback(JsonDocument doc) {
         isReceived = true;
         // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
 
-        broker.unsubscribe(exchange_key_topic.c_str());
-        broker.subscribe(handle_topic.c_str());
+        broker.StopListen(exchange_key_topic);
+        broker.Listen(handle_topic);
         broker.SetAction(RequestCallback);
     }
 }
