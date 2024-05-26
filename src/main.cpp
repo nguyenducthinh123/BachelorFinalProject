@@ -81,10 +81,16 @@ void ReceivedCallback(JsonDocument doc) {
 
 void RequestCallback(JsonDocument doc) {
     JsonArray device = doc["Devices"];
+    if (!device) return;
     int i = 0;
     for (JsonVariant item : device) {
         if (item["Power"].as<String>() == "on") digitalWrite(pins[i], HIGH);
         else digitalWrite(pins[i], LOW);
         ++i;
     }
+    JsonDocument doc_response;
+    doc_response["Response"] = "Success Control";
+    broker.StopListen(handle_topic);
+    broker.Send(handle_topic, doc_response);
+    broker.Listen(handle_topic);
 }
