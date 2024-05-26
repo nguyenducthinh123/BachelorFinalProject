@@ -5,6 +5,7 @@
 
 typedef void(*Callback)(const char*, byte*, unsigned int);
 typedef void(*Action)(JsonDocument);
+const int BufferSize = (2 << 10); // 1 KB
 
 class Broker : public PubSubClient, public WiFiClient {
     const char* ssid;
@@ -18,6 +19,7 @@ public:
     Broker(const char* Ssid = "Wifi nha tro 4G", const char* Password = "43219876") : PubSubClient(espClient) {
         ssid = Ssid;
         password = Password;
+        setBufferSize(BufferSize);
     }
 
     void Begin() {
@@ -56,7 +58,7 @@ public:
     }
 
     void Send(const char* topic, JsonDocument doc) {
-        char buffer[256];
+        char buffer[BufferSize];
         serializeJson(doc, buffer);
         publish(topic, buffer);
     }

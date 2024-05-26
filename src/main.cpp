@@ -3,6 +3,13 @@
 #include "../include/System/System.h"
 #include "md5.h"
 
+#define light1 2
+#define light2 4
+#define light3 5
+#define light4 18
+
+int pins[] = { light1, light2, light3, light4 };
+ 
 System _system;
 Log _log;
 
@@ -35,12 +42,15 @@ public:
 void setup() {
     Serial.begin(9600);
     _system.Reset();
+
+    for (auto& x : pins) {
+        pinMode(x, OUTPUT);
+    }
     broker.Begin();
     broker.setCallback(CallBack);
 
     broker.Listen(ToMD5(exchange_key_topic));
     broker.SetAction(ReceivedCallback);
-    pinMode(2, OUTPUT);
 }
 
 void loop() {
@@ -51,12 +61,14 @@ void loop() {
 void CallBack(const char* topic, byte* payload, unsigned int length) {
     JsonDocument doc;
     deserializeJson(doc, payload, length);
+    int len = measureJson(doc);
+    _log << len << endl;
     broker.Call(doc);
 }
 
 void ReceivedCallback(JsonDocument doc) {
 
-    String res = doc["Response"].as<String>();
+    String res = doc["Response"];
     if (res == "received") {
         isReceived = true;
         // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
@@ -68,5 +80,5 @@ void ReceivedCallback(JsonDocument doc) {
 }
 
 void RequestCallback(JsonDocument doc) {
-    digitalWrite(2, HIGH);
+    _log << "rq cb" << endl;
 }
