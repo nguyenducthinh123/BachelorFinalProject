@@ -5,7 +5,7 @@
 
 typedef void(*Callback)(const char*, byte*, unsigned int);
 typedef void(*Action)(JsonDocument);
-const int BufferSize = (2 << 10); // 1 KB
+const int BufferSize = (2 << 10); // 2 KB
 
 class Broker : public PubSubClient, public WiFiClient {
     const char* ssid;

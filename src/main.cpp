@@ -61,8 +61,8 @@ void loop() {
 void CallBack(const char* topic, byte* payload, unsigned int length) {
     JsonDocument doc;
     deserializeJson(doc, payload, length);
-    int len = measureJson(doc);
-    _log << len << endl;
+    // int len = measureJson(doc);
+    // _log << len << endl;
     broker.Call(doc);
 }
 
@@ -80,5 +80,11 @@ void ReceivedCallback(JsonDocument doc) {
 }
 
 void RequestCallback(JsonDocument doc) {
-    _log << "rq cb" << endl;
+    JsonArray device = doc["Devices"];
+    int i = 0;
+    for (JsonVariant item : device) {
+        if (item["Power"].as<String>() == "on") digitalWrite(pins[i], HIGH);
+        else digitalWrite(pins[i], LOW);
+        ++i;
+    }
 }
