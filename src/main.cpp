@@ -19,7 +19,7 @@ int pinFans[] = { fan1, fan2 };
 System _system;
 Log _log;
 
-Broker broker;
+Broker broker("Tang 4 nha 37", "0912177195tqd");
 
 String exchange_key_topic = "d3101";
 String handle_topic = "esp32/" + broker.GetId();
@@ -51,7 +51,7 @@ public:
     void on_restart() override {
         if (isReceived) {
             JsonDocument doc;
-            doc["Code"] = "keep-alive";
+            doc["Type"] = "keep-alive";
 
             broker.Send(handle_topic, doc);
         }
@@ -122,10 +122,10 @@ void RequestCallback(JsonDocument doc) {
     // broker.Send(handle_topic, doc_response);
     // broker.Listen(handle_topic);
 
-    String code = doc["Code"];
-    if (code == "ack-control" || code == "response" || code == "keep-alive") return;
+    String type = doc["Type"];
+    if (type == "ack-control" || type == "response" || type == "keep-alive") return;
     
-    if (code == "control") {
+    if (type == "control") {
         JsonArray Lights = doc["Devices"]["Lights"];
         JsonArray Fans = doc["Devices"]["Fans"];
         JsonArray Doors = doc["Devices"]["Doors"];
@@ -162,7 +162,7 @@ void RequestCallback(JsonDocument doc) {
 
         // send ack-control
         JsonDocument ack_doc;
-        ack_doc["Code"] = "ack-control";
+        ack_doc["Type"] = "ack-control";
         ack_doc["Response"] = "control-success";
         broker.Send(handle_topic, ack_doc);
     }
