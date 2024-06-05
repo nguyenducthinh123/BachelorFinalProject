@@ -7,59 +7,63 @@
 #define light2 4
 #define light3 5
 #define light4 18
+#define light5 27
 #define door1 19
 #define door2 23
 #define fan1 12
 #define fan2 13
 
-int pinLights[] = { light1, light2, light3, light4 };
+int pinLights[] = { light1, light2, light3, light4, light5 };
 int pinDoors[] = { door1, door2 };
 int pinFans[] = { fan1, fan2 };
  
 System _system;
 Log _log;
 
-Broker broker("Tang 4 nha 37", "0912177195tqd");
+Broker broker("Duc Thinh", "05082011");
 
-String exchange_key_topic = "d3101";
-String handle_topic = "esp32/" + broker.GetId();
+String connect_topic = "connect";
+String handle_topic = "d3101";
+String disconnect_topic = "disconnect";
+String token = ToMD5(handle_topic); // dùng token làm topic sau khi connect luôn
+// String md5_connect_topic = ToMD5(connect_topic);
+// String md5_disconect_topic = ToMD5(disconnect_topic);
 
-bool isReceived = false;
+JsonDocument ConnectDoc;
+
+// khởi tạo ConnectDoc mặc định khi chưa có dữ liệu
+void InitConnectDoc(JsonDocument& doc);
 
 void CallBack(const char*, byte*, unsigned int);
-void ReceivedCallback(JsonDocument);
-void RequestCallback(JsonDocument);
+void HandleCallback(JsonDocument);
 
-class StartClock : public Timer { 
+bool isConnected = false;
+class ConnectClock : public Timer {
 public:
-    StartClock() : Timer(3000) { } // cứ 3s gửi id 1 lần
+    ConnectClock() : Timer(5000) { }
 
     void on_restart() override {
-        if (!isReceived) {
-            JsonDocument doc;
-            doc["_id"] = broker.GetId();
-            
-            broker.Send(ToMD5(exchange_key_topic), doc);
+        if (!isConnected) {
+            broker.Send(connect_topic, ConnectDoc);
         }
-    }
-} startClock;
+    }    
+} connectClock;
 
 class KeepAliveClock : public Timer {
 public:
     KeepAliveClock() : Timer(60000) { } // 60s gửi keep alive 1 lần
 
     void on_restart() override {
-        if (isReceived) {
-            JsonDocument doc;
-            doc["Type"] = "keep-alive";
+        JsonDocument doc;
+        doc["Type"] = "keep-alive";
 
-            broker.Send(handle_topic, doc);
-        }
+        broker.Send(token, doc);
     }
 } keepAliveClock;
 
 void setup() {
     Serial.begin(9600);
+    InitConnectDoc(ConnectDoc);
     _system.Reset();
 
     for (auto& x : pinLights) {
@@ -77,8 +81,8 @@ void setup() {
     broker.Begin();
     broker.setCallback(CallBack);
 
-    broker.Listen(ToMD5(exchange_key_topic));
-    broker.SetAction(ReceivedCallback);
+    broker.Listen(token);
+    broker.Listen(disconnect_topic);
 }
 
 void loop() {
@@ -89,25 +93,32 @@ void loop() {
 void CallBack(const char* topic, byte* payload, unsigned int length) {
     JsonDocument doc;
     deserializeJson(doc, payload, length);
-    // int len = measureJson(doc);
-    // _log << len << endl;
-    broker.Call(doc);
-}
 
-void ReceivedCallback(JsonDocument doc) {
-
-    String res = doc["Response"];
-    if (res == "received") {
-        isReceived = true;
-        // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
-
-        broker.StopListen(exchange_key_topic);
-        broker.Listen(handle_topic);
-        broker.SetAction(RequestCallback);
+    if (strcmp(topic, disconnect_topic.c_str()) == 0) {
+        // tạm thời để là có bản tin thì xử lí đã
+        isConnected = false;
     }
+    else {
+        HandleCallback(doc);
+    }
+
+    // broker.Call(doc);
 }
 
-void RequestCallback(JsonDocument doc) {
+// void ReceivedCallback(JsonDocument doc) {
+
+//     String res = doc["Response"];
+//     if (res == "received") {
+//         isReceived = true;
+//         // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
+
+//         broker.StopListen(exchange_key_topic);
+//         broker.Listen(handle_topic);
+//         broker.SetAction(RequestCallback);
+//     }
+// }
+
+void HandleCallback(JsonDocument doc) {
     // JsonArray device = doc["Devices"];
     // if (!device) return;
     // int i = 0;
@@ -123,47 +134,97 @@ void RequestCallback(JsonDocument doc) {
     // broker.Listen(handle_topic);
 
     String type = doc["Type"];
-    if (type == "ack-control" || type == "response" || type == "keep-alive") return;
+    // if (type == "ack-control" || type == "response" || type == "keep-alive") return;
+
+    if (type == "connected") {
+        isConnected = true;
+    }
     
     if (type == "control") {
         JsonArray Lights = doc["Devices"]["Lights"];
         JsonArray Fans = doc["Devices"]["Fans"];
         JsonArray Doors = doc["Devices"]["Doors"];
 
+        JsonArray CnLights = ConnectDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray CnFans = ConnectDoc["Devices"]["Fans"];
+        JsonArray CnDoors = ConnectDoc["Devices"]["Doors"];
+
         for (JsonVariant items : Lights) {
             int id_esp = items["id_esp"];
             --id_esp;
-            String power = items["power"];
-            if (power == "on") {
+            String status = items["status"];
+            if (status == "on") {
                 digitalWrite(pinLights[id_esp], HIGH);
+                CnLights[id_esp]["status"] = "on";
             }
-            else digitalWrite(pinLights[id_esp], LOW);
+            else {
+                digitalWrite(pinLights[id_esp], LOW);
+                CnLights[id_esp]["status"] = "off";
+            }
         }
 
         for (JsonVariant items : Fans) {
             int id_esp = items["id_esp"];
             --id_esp;
-            String power = items["power"];
-            if (power == "on") {
+            String status = items["status"];
+            if (status == "on") {
                 digitalWrite(pinFans[id_esp], HIGH);
+                CnFans[id_esp]["status"] = "on";
             }
-            else digitalWrite(pinFans[id_esp], LOW);
+            else {
+                digitalWrite(pinFans[id_esp], LOW);
+                CnFans[id_esp]["status"] = "off";
+            }
         }
 
         for (JsonVariant items : Doors) {
             int id_esp = items["id_esp"];
             --id_esp;
-            String power = items["power"];
-            if (power == "on") {
+            String status = items["status"];
+            if (status == "on") {
                 digitalWrite(pinDoors[id_esp], HIGH);
+                CnDoors[id_esp]["status"] = "on";
             }
-            else digitalWrite(pinDoors[id_esp], LOW);
+            else {
+                digitalWrite(pinDoors[id_esp], LOW);
+                CnDoors[id_esp]["status"] = "off";
+            }
         }
 
         // send ack-control
         JsonDocument ack_doc;
         ack_doc["Type"] = "ack-control";
         ack_doc["Response"] = "control-success";
-        broker.Send(handle_topic, ack_doc);
+        broker.Send(token, ack_doc);
+    }
+}
+
+void InitConnectDoc(JsonDocument& doc) {
+    doc["Token"] = token;
+
+    JsonObject devices = doc.createNestedObject("Devices");
+
+    JsonArray lights = devices.createNestedArray("Lights");
+    int i = 0;
+    for (auto& x : pinLights) {
+        JsonObject light = lights.createNestedObject();
+        light["id_esp"] = ++i;
+        light["status"] = "off";
+    }
+
+    JsonArray fans = devices.createNestedArray("Fans");
+    int j = 0;
+    for (auto& x : pinFans) {
+        JsonObject fan = fans.createNestedObject();
+        fan["id_esp"] = ++j;
+        fan["status"] = "off";
+    }
+
+    JsonArray doors = devices.createNestedArray("Doors");
+    int k = 0;
+    for (auto& x : pinDoors) {
+        JsonObject door = doors.createNestedObject();
+        door["id_esp"] = ++k;
+        door["status"] = "off";
     }
 }
