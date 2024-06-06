@@ -22,32 +22,16 @@ Log _log;
 
 Broker broker("Duc Thinh", "05082011");
 
-String connect_topic = "connect";
 String handle_topic = "d3101";
-String disconnect_topic = "disconnect";
 String token = ToMD5(handle_topic); // dùng token làm topic sau khi connect luôn
-// String md5_connect_topic = ToMD5(connect_topic);
-// String md5_disconect_topic = ToMD5(disconnect_topic);
 
-JsonDocument ConnectDoc;
+JsonDocument RespDoc;
 
 // khởi tạo ConnectDoc mặc định khi chưa có dữ liệu
-void InitConnectDoc(JsonDocument& doc);
+void InitResponseDoc(JsonDocument& doc);
 
 void CallBack(const char*, byte*, unsigned int);
 void HandleCallback(JsonDocument);
-
-bool isConnected = false;
-class ConnectClock : public Timer {
-public:
-    ConnectClock() : Timer(5000) { }
-
-    void on_restart() override {
-        if (!isConnected) {
-            broker.Send(connect_topic, ConnectDoc);
-        }
-    }    
-} connectClock;
 
 class KeepAliveClock : public Timer {
 public:
@@ -63,7 +47,7 @@ public:
 
 void setup() {
     Serial.begin(9600);
-    InitConnectDoc(ConnectDoc);
+    InitResponseDoc(RespDoc);
     _system.Reset();
 
     for (auto& x : pinLights) {
@@ -82,7 +66,6 @@ void setup() {
     broker.setCallback(CallBack);
 
     broker.Listen(token);
-    broker.Listen(disconnect_topic);
 }
 
 void loop() {
@@ -94,15 +77,7 @@ void CallBack(const char* topic, byte* payload, unsigned int length) {
     JsonDocument doc;
     deserializeJson(doc, payload, length);
 
-    if (strcmp(topic, disconnect_topic.c_str()) == 0) {
-        // tạm thời để là có bản tin thì xử lí đã
-        isConnected = false;
-    }
-    else {
-        HandleCallback(doc);
-    }
-
-    // broker.Call(doc);
+    HandleCallback(doc);
 }
 
 // void ReceivedCallback(JsonDocument doc) {
@@ -135,19 +110,15 @@ void HandleCallback(JsonDocument doc) {
 
     String type = doc["Type"];
     // if (type == "ack-control" || type == "response" || type == "keep-alive") return;
-
-    if (type == "connected") {
-        isConnected = true;
-    }
     
     if (type == "control") {
         JsonArray Lights = doc["Devices"]["Lights"];
         JsonArray Fans = doc["Devices"]["Fans"];
         JsonArray Doors = doc["Devices"]["Doors"];
 
-        JsonArray CnLights = ConnectDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
-        JsonArray CnFans = ConnectDoc["Devices"]["Fans"];
-        JsonArray CnDoors = ConnectDoc["Devices"]["Doors"];
+        JsonArray CnLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray CnFans = RespDoc["Devices"]["Fans"];
+        JsonArray CnDoors = RespDoc["Devices"]["Doors"];
 
         for (JsonVariant items : Lights) {
             int id_esp = items["id_esp"];
@@ -197,10 +168,13 @@ void HandleCallback(JsonDocument doc) {
         ack_doc["Response"] = "control-success";
         broker.Send(token, ack_doc);
     }
+    else if (type == "request-infor") {
+        broker.Send(token, RespDoc);
+    }
 }
 
-void InitConnectDoc(JsonDocument& doc) {
-    doc["Token"] = token;
+void InitResponseDoc(JsonDocument& doc) {
+    doc["Type"] = "response";
 
     JsonObject devices = doc.createNestedObject("Devices");
 
