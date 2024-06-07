@@ -125,9 +125,9 @@ void HandleCallback(JsonDocument doc) {
         JsonArray Fans = doc["Devices"]["Fans"];
         JsonArray Doors = doc["Devices"]["Doors"];
 
-        JsonArray CnLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
-        JsonArray CnFans = RespDoc["Devices"]["Fans"];
-        JsonArray CnDoors = RespDoc["Devices"]["Doors"];
+        JsonArray RespLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray RespFans = RespDoc["Devices"]["Fans"];
+        JsonArray RespDoors = RespDoc["Devices"]["Doors"];
 
         for (JsonVariant items : Lights) {
             int id_esp = items["id_esp"];
@@ -135,11 +135,11 @@ void HandleCallback(JsonDocument doc) {
             String status = items["status"];
             if (status == "on") {
                 digitalWrite(pinLights[id_esp], HIGH);
-                CnLights[id_esp]["status"] = "on";
+                RespLights[id_esp]["status"] = "on";
             }
             else {
                 digitalWrite(pinLights[id_esp], LOW);
-                CnLights[id_esp]["status"] = "off";
+                RespLights[id_esp]["status"] = "off";
             }
         }
 
@@ -149,11 +149,11 @@ void HandleCallback(JsonDocument doc) {
             String status = items["status"];
             if (status == "on") {
                 digitalWrite(pinFans[id_esp], HIGH);
-                CnFans[id_esp]["status"] = "on";
+                RespFans[id_esp]["status"] = "on";
             }
             else {
                 digitalWrite(pinFans[id_esp], LOW);
-                CnFans[id_esp]["status"] = "off";
+                RespFans[id_esp]["status"] = "off";
             }
         }
 
@@ -163,11 +163,11 @@ void HandleCallback(JsonDocument doc) {
             String status = items["status"];
             if (status == "on") {
                 digitalWrite(pinDoors[id_esp], HIGH);
-                CnDoors[id_esp]["status"] = "on";
+                RespDoors[id_esp]["status"] = "on";
             }
             else {
                 digitalWrite(pinDoors[id_esp], LOW);
-                CnDoors[id_esp]["status"] = "off";
+                RespDoors[id_esp]["status"] = "off";
             }
         }
 
@@ -188,40 +188,48 @@ void ScheduleCallback(JsonDocument doc) {
     if (type == "schedule" && _token == token) {
         JsonArray devices = doc["Devices"];    
         String status = doc["Status"];
-        // đèn
+
+        JsonArray RespLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray RespFans = RespDoc["Devices"]["Fans"];
+        JsonArray RespDoors = RespDoc["Devices"]["Doors"];
+
         if (status == "on") {
+            // đèn
             for (int i = 0; i < devices[0]; i++) {
                 digitalWrite(pinLights[i], HIGH);
+                RespLights[i]["status"] = "on";
             }
-        }
-        else {
-            for (int i = 0; i < devices[0]; i++) {
-                digitalWrite(pinLights[i], LOW);
-            }
-        }
-        // quạt
-        if (status == "on") {
+            // quạt
             for (int i = 0; i < devices[1]; i++) {
                 digitalWrite(pinFans[i], HIGH);
+                RespFans[i]["status"] = "on";
             }
-        }
+            // cửa
+             for (int i = 0; i < devices[2]; i++) {
+                digitalWrite(pinDoors[i], HIGH);
+                RespDoors[i]["status"] = "on";
+            }
+
+       }
         else {
+            // đèn
+            for (int i = 0; i < devices[0]; i++) {
+                digitalWrite(pinLights[i], LOW);
+                RespLights[i]["status"] = "off";
+            }
+            // quạt
             for (int i = 0; i < devices[1]; i++) {
                 digitalWrite(pinFans[i], LOW);
+                RespFans[i]["status"] = "off";
             }
-        }
-        // cửa
-        if (status == "on") {
-            for (int i = 0; i < devices[2]; i++) {
-                digitalWrite(pinDoors[i], HIGH);
-            }
-        }
-        else {
-            for (int i = 0; i < devices[2]; i++) {
+            // cửa
+             for (int i = 0; i < devices[2]; i++) {
                 digitalWrite(pinDoors[i], LOW);
+                RespDoors[i]["status"] = "off";
             }
-        }
 
+       }
+       
         // send ack-schedule
         JsonDocument ack_doc;
         ack_doc["Type"] = "ack-schedule";
