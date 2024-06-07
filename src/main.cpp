@@ -23,15 +23,18 @@ Log _log;
 Broker broker("Duc Thinh", "05082011");
 
 String handle_topic = "d3101";
-String token = ToMD5(handle_topic); // dùng token làm topic sau khi connect luôn
+String token = ToMD5(handle_topic); // dùng token làm topic 
+String building_topic = handle_topic.substring(0, 2);
+String building_token = ToMD5(building_topic); // dùng làm topic lập lịch
 
 JsonDocument RespDoc;
 
-// khởi tạo ConnectDoc mặc định khi chưa có dữ liệu
+// khởi tạo RespDoc mặc định khi chưa có dữ liệu
 void InitResponseDoc(JsonDocument& doc);
 
 void CallBack(const char*, byte*, unsigned int);
 void HandleCallback(JsonDocument);
+void ScheduleCallback(JsonDocument);
 
 class KeepAliveClock : public Timer {
 public:
@@ -66,6 +69,7 @@ void setup() {
     broker.setCallback(CallBack);
 
     broker.Listen(token);
+    broker.Listen(building_token);
 }
 
 void loop() {
@@ -77,7 +81,12 @@ void CallBack(const char* topic, byte* payload, unsigned int length) {
     JsonDocument doc;
     deserializeJson(doc, payload, length);
 
-    HandleCallback(doc);
+    if (strcmp(topic, building_token.c_str()) == 0) {
+        ScheduleCallback(doc);
+    }
+    else {
+        HandleCallback(doc);
+    } 
 }
 
 // void ReceivedCallback(JsonDocument doc) {
@@ -170,6 +179,54 @@ void HandleCallback(JsonDocument doc) {
     }
     else if (type == "request-infor") {
         broker.Send(token, RespDoc);
+    }
+}
+
+void ScheduleCallback(JsonDocument doc) {
+    String type = doc["Type"];
+    String _token = doc["Token"];
+    if (type == "schedule" && _token == token) {
+        JsonArray devices = doc["Devices"];    
+        String status = doc["Status"];
+        // đèn
+        if (status == "on") {
+            for (int i = 0; i < devices[0]; i++) {
+                digitalWrite(pinLights[i], HIGH);
+            }
+        }
+        else {
+            for (int i = 0; i < devices[0]; i++) {
+                digitalWrite(pinLights[i], LOW);
+            }
+        }
+        // quạt
+        if (status == "on") {
+            for (int i = 0; i < devices[1]; i++) {
+                digitalWrite(pinFans[i], HIGH);
+            }
+        }
+        else {
+            for (int i = 0; i < devices[1]; i++) {
+                digitalWrite(pinFans[i], LOW);
+            }
+        }
+        // cửa
+        if (status == "on") {
+            for (int i = 0; i < devices[2]; i++) {
+                digitalWrite(pinDoors[i], HIGH);
+            }
+        }
+        else {
+            for (int i = 0; i < devices[2]; i++) {
+                digitalWrite(pinDoors[i], LOW);
+            }
+        }
+
+        // send ack-schedule
+        JsonDocument ack_doc;
+        ack_doc["Type"] = "ack-schedule";
+        ack_doc["Token"] = token;
+        broker.Send(building_token, ack_doc);
     }
 }
 
