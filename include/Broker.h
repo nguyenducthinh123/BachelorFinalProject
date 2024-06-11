@@ -23,6 +23,13 @@ public:
     }
 
     void Begin() {
+        ConnectWifi();
+
+        PubSubClient::setServer("broker.emqx.io", 1883);
+        ConnectMqtt();
+    }
+
+    void ConnectWifi() {
         // Connecting to a WiFi network
         WiFi.begin(ssid, password);
         while (WiFi.status() != WL_CONNECTED) {
@@ -30,10 +37,10 @@ public:
             Serial.println("Connecting to WiFi..");
         }
         Serial.println("Connected to the Wi-Fi network");
+    }
 
+    void ConnectMqtt() {
         // Connecting to a mqtt broker
-        PubSubClient::setServer("broker.emqx.io", 1883);
-        
         while (!PubSubClient::connected()) {
             String client_id = "esp32-client-";
             client_id += (WiFi.macAddress());

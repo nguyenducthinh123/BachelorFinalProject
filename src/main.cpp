@@ -48,6 +48,20 @@ public:
     }
 } keepAliveClock;
 
+class ReconnectClock : public Timer {
+public:
+    ReconnectClock() : Timer(5000) { }
+
+    void on_restart() override {
+        if (WiFi.status() != WL_CONNECTED) {
+            broker.ConnectWifi();
+            broker.ConnectMqtt();
+            broker.Listen(token);
+            broker.Listen(building_token);
+        }
+    }
+} reconnectClock;
+
 void setup() {
     Serial.begin(9600);
     InitResponseDoc(RespDoc);
