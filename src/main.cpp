@@ -1,19 +1,20 @@
 #include <Arduino.h>
 #include <Broker.h>
 #include "../include/System/System.h"
-#include "md5.h"
+#include "Md5.h"
 
 #define light1 2
 #define light2 4
 #define light3 5
 #define light4 18
-#define light5 27
-#define door1 19
-#define door2 23
-#define fan1 12
-#define fan2 13
+#define light5 19
+#define light6 23
+#define door1 13
+#define door2 12
+#define fan1 14
+#define fan2 27
 
-int pinLights[] = { light1, light2, light3, light4, light5 };
+int pinLights[] = { light1, light2, light3, light4, light5, light6 };
 int pinDoors[] = { door1, door2 };
 int pinFans[] = { fan1, fan2 };
  
@@ -23,13 +24,13 @@ Log _log;
 Broker broker("Duc Thinh", "05082011");
 
 String handle_topic = "d3101";
-String token = ToMD5(handle_topic); // dùng token làm topic 
+String token = ToMD5(handle_topic); // Use token as topic
 String building_topic = handle_topic.substring(0, 2);
-String building_token = ToMD5(building_topic); // dùng làm topic lập lịch
+String building_token = ToMD5(building_topic); // Used as a scheduling topic
 
 JsonDocument RespDoc;
 
-// khởi tạo RespDoc mặc định khi chưa có dữ liệu
+// Initializes the default RespDoc when there is no data
 void InitResponseDoc(JsonDocument& doc);
 
 void CallBack(const char*, byte*, unsigned int);
@@ -38,7 +39,7 @@ void ScheduleCallback(JsonDocument);
 
 class KeepAliveClock : public Timer {
 public:
-    KeepAliveClock() : Timer(60000) { } // 60s gửi keep alive 1 lần
+    KeepAliveClock() : Timer(60000) { } // Send keep alive once every 60 seconds
 
     void on_restart() override {
         JsonDocument doc;
@@ -50,7 +51,7 @@ public:
 
 class ReconnectClock : public Timer {
 public:
-    ReconnectClock() : Timer(5000) { }
+    ReconnectClock() : Timer(5000) { } // Test connection to MQTT every 5 seconds
 
     void on_restart() override {
         if (WiFi.status() != WL_CONNECTED) {
@@ -106,43 +107,15 @@ void CallBack(const char* topic, byte* payload, unsigned int length) {
     } 
 }
 
-// void ReceivedCallback(JsonDocument doc) {
-
-//     String res = doc["Response"];
-//     if (res == "received") {
-//         isReceived = true;
-//         // broker.Listen(handle_topic.c_str(), RequestCallback); // action bị null sau khi gọi lần 2 ?
-
-//         broker.StopListen(exchange_key_topic);
-//         broker.Listen(handle_topic);
-//         broker.SetAction(RequestCallback);
-//     }
-// }
-
 void HandleCallback(JsonDocument doc) {
-    // JsonArray device = doc["Devices"];
-    // if (!device) return;
-    // int i = 0;
-    // for (JsonVariant item : device) {
-    //     if (item["Power"].as<String>() == "on") digitalWrite(pins[i], HIGH);
-    //     else digitalWrite(pins[i], LOW);
-    //     ++i;
-    // }
-    // JsonDocument doc_response;
-    // doc_response["Response"] = "Success Control";
-    // broker.StopListen(handle_topic);
-    // broker.Send(handle_topic, doc_response);
-    // broker.Listen(handle_topic);
-
     String type = doc["Type"];
-    // if (type == "ack-control" || type == "response" || type == "keep-alive") return;
     
     if (type == "control") {
         JsonArray Lights = doc["Devices"]["Lights"];
         JsonArray Fans = doc["Devices"]["Fans"];
         JsonArray Doors = doc["Devices"]["Doors"];
 
-        JsonArray RespLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray RespLights = RespDoc["Devices"]["Lights"]; // ref should change in array will change in doc
         JsonArray RespFans = RespDoc["Devices"]["Fans"];
         JsonArray RespDoors = RespDoc["Devices"]["Doors"];
 
@@ -206,22 +179,22 @@ void ScheduleCallback(JsonDocument doc) {
         JsonArray devices = doc["Devices"];    
         String status = doc["Status"];
 
-        JsonArray RespLights = RespDoc["Devices"]["Lights"]; // ref nên thay đổi ở array sẽ thay đổi trong doc
+        JsonArray RespLights = RespDoc["Devices"]["Lights"];
         JsonArray RespFans = RespDoc["Devices"]["Fans"];
         JsonArray RespDoors = RespDoc["Devices"]["Doors"];
 
         if (status == "on") {
-            // đèn
+            // Ligths
             for (int i = 0; i < devices[0]; i++) {
                 digitalWrite(pinLights[i], HIGH);
                 RespLights[i]["status"] = "on";
             }
-            // quạt
+            // Fans
             for (int i = 0; i < devices[1]; i++) {
                 digitalWrite(pinFans[i], HIGH);
                 RespFans[i]["status"] = "on";
             }
-            // cửa
+            // Doors
              for (int i = 0; i < devices[2]; i++) {
                 digitalWrite(pinDoors[i], HIGH);
                 RespDoors[i]["status"] = "on";
@@ -229,17 +202,17 @@ void ScheduleCallback(JsonDocument doc) {
 
        }
         else {
-            // đèn
+            // Ligths
             for (int i = 0; i < devices[0]; i++) {
                 digitalWrite(pinLights[i], LOW);
                 RespLights[i]["status"] = "off";
             }
-            // quạt
+            // Fans
             for (int i = 0; i < devices[1]; i++) {
                 digitalWrite(pinFans[i], LOW);
                 RespFans[i]["status"] = "off";
             }
-            // cửa
+            // Doors
              for (int i = 0; i < devices[2]; i++) {
                 digitalWrite(pinDoors[i], LOW);
                 RespDoors[i]["status"] = "off";

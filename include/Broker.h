@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
-#define pin_mqtt 33
+#define pin_mqtt 26
 
 typedef void(*Callback)(const char*, byte*, unsigned int);
 typedef void(*Action)(JsonDocument);
@@ -14,11 +14,10 @@ class Broker : public PubSubClient, public WiFiClient {
     const char* password;
     
     WiFiClient espClient;
-    // const char* last_topic;
     Action action;    
 
 public:
-    Broker(const char* Ssid = "Wifi nha tro 4G", const char* Password = "43219876") : PubSubClient(espClient) {
+    Broker(const char* Ssid = "Duc Thinh", const char* Password = "05082011") : PubSubClient(espClient) {
         ssid = Ssid;
         password = Password;
         setBufferSize(BufferSize);
@@ -80,19 +79,6 @@ public:
     void StopListen(String topic) {
         unsubscribe(topic.c_str());
     }
-
-    // void Listen(const char* topic, Action received_callback) { 
-
-    //     if (last_topic) {
-    //         unsubscribe(last_topic);
-    //     }
-    //     last_topic = topic;
-    //     if (topic) {
-    //         subscribe(topic);
-    //     };
-
-    //     SetAction(received_callback);
-    // }
 
     void Call(JsonDocument doc) {
         if (action) {
