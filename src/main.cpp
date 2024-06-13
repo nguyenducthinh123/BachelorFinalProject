@@ -54,6 +54,7 @@ public:
 
     void on_restart() override {
         if (WiFi.status() != WL_CONNECTED) {
+            digitalWrite(pin_mqtt, LOW);
             broker.ConnectWifi();
             broker.ConnectMqtt();
             broker.Listen(token);
@@ -66,6 +67,8 @@ void setup() {
     Serial.begin(9600);
     InitResponseDoc(RespDoc);
     _system.Reset();
+
+    pinMode(pin_mqtt, OUTPUT);
 
     for (auto& x : pinLights) {
         pinMode(x, OUTPUT);

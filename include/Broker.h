@@ -3,6 +3,8 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
+#define pin_mqtt 33
+
 typedef void(*Callback)(const char*, byte*, unsigned int);
 typedef void(*Action)(JsonDocument);
 const int BufferSize = (2 << 10); // 2 KB
@@ -47,6 +49,7 @@ public:
             Serial.printf("The client %s connects to the public MQTT broker\n", client_id.c_str());
             if (PubSubClient::connect(client_id.c_str())) {
                 Serial.println("Public EMQX MQTT broker connected");
+                digitalWrite(pin_mqtt, HIGH);
             } else {
                 Serial.print("failed with state ");
                 Serial.print(PubSubClient::state());
