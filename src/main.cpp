@@ -44,6 +44,7 @@ public:
     void on_restart() override {
         JsonDocument doc;
         doc["Type"] = "keep-alive";
+        doc["_id"] = token;
 
         broker.Send(token, doc);
     }
@@ -54,9 +55,10 @@ public:
     ReconnectClock() : Timer(5000) { } // Test connection to MQTT every 5 seconds
 
     void on_restart() override {
-        if (WiFi.status() != WL_CONNECTED) {
+        if (!broker.Connected()) { // When the connection to the MQTT server is lost
             digitalWrite(pin_mqtt, LOW);
-            broker.ConnectWifi();
+            
+            if (WiFi.status() != WL_CONNECTED) broker.ConnectWifi();
             broker.ConnectMqtt();
             broker.Listen(token);
             broker.Listen(building_token);

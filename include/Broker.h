@@ -30,6 +30,8 @@ public:
         ConnectMqtt();
     }
 
+    bool Connected() { return PubSubClient::connected(); }
+
     void ConnectWifi() {
         // Connecting to a WiFi network
         WiFi.begin(ssid, password);
@@ -42,7 +44,7 @@ public:
 
     void ConnectMqtt() {
         // Connecting to a mqtt broker
-        while (!PubSubClient::connected()) {
+        while (!Connected()) {
             String client_id = "esp32-client-";
             client_id += (WiFi.macAddress());
             Serial.printf("The client %s connects to the public MQTT broker\n", client_id.c_str());
@@ -56,6 +58,25 @@ public:
             }
          }
     }
+
+    // void ReconnectMqtt() {
+    //     int i = 2, j = 2;
+    //     WiFi.begin(ssid, password);
+    //     while (WiFi.status() != WL_CONNECTED && i > 0) {
+    //         --i;
+    //         delay(500);
+    //         Serial.println("Connecting to WiFi..");
+    //     }
+    //     if (WiFi.status() == WL_CONNECTED) {
+    //         String client_id = "esp32-client-";
+    //         client_id += (WiFi.macAddress());
+    //         while (!Connected() && j > 0) {
+    //             PubSubClient::connect(client_id.c_str());
+    //             --j;
+    //             delay(1500);
+    //         }
+    //     }        
+    // }
 
     Broker& SetAction(Action action) {
         this->action = action;
